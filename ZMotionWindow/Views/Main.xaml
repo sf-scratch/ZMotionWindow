@@ -1,0 +1,106 @@
+﻿<Window x:Class="ZMotionWindow.Views.Main"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ZMotionWindow.Views"
+        xmlns:prism="http://prismlibrary.com/"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        mc:Ignorable="d"
+        Title="Main" Height="550" Width="800" Cursor="">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <GroupBox md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="轴卡连接" 
+                  Style="{StaticResource MaterialDesignGroupBox}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Text="IP 地址：" />
+                <ComboBox md:HintAssist.Hint="------" ItemsSource="{Binding IpAddressList}" SelectedItem="{Binding SelectIP}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Content="扫描IP" Command="{Binding ScanIPCommand}" Margin="5,0,0,0"/>
+                <CheckBox IsChecked="{Binding Path=IsConnect, Mode=TwoWay}" IsEnabled="{Binding IsConnectEnable}" Style="{StaticResource MaterialDesignFilterChipSecondaryCheckBox}"  Margin="5,0,0,0"
+                          Command="{Binding ConnectOrCloseCommand}" Content="未连接" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" Cursor="Hand"/>
+                <Button Content="初始化" Command="{Binding InitControlCommand}" Margin="5,0,0,0"/>
+                <Button Content="触发示波器" Command="{Binding OpenOscilloscopeCommand}" Margin="5,0,0,0"/>
+                <Button Content="单轴回零运动" Command="{Binding ReturnZeroMotionCommand}" Margin="5,0,0,0"/>
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Grid.Row="1" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="运动参数控制" 
+          Style="{StaticResource MaterialDesignGroupBox}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Text="起始速度："/>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding StartingSpeed}"/>
+                <TextBlock Grid.Column="2" Text="运行速度："/>
+                <TextBox Grid.Column="3" VerticalAlignment="Center" Text="{Binding RunningSpeed}"/>
+                <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="加速度："/>
+                <TextBox Grid.Column="5" VerticalAlignment="Center" Text="{Binding Acceleration}"/>
+                <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="减速度："/>
+                <TextBox Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Deceleration}"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="S曲线时间："/>
+                <TextBox Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" Text="{Binding Sramp}"/>
+                <TextBlock Grid.Row="1" Grid.Column="4" VerticalAlignment="Center" Text="脉冲当量："/>
+                <TextBox Grid.Row="1" Grid.Column="5" VerticalAlignment="Center" Text="{Binding Units}"/>
+            </Grid>
+        </GroupBox>
+        <GroupBox Grid.Row="2" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="单轴持续运动控制" 
+          Style="{StaticResource MaterialDesignGroupBox}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="正向" Command="{Binding PositiveMoveCommand}" Margin="5,0,0,0"/>
+                <Button Content="反向" Command="{Binding NegativeMoveCommand}" Margin="5,0,0,0"/>
+                <TextBlock VerticalAlignment="Center" Text="指令位置：" Margin="20,0,0,0"/>
+                <TextBlock VerticalAlignment="Center" Text="{Binding InstructDpos, Mode=OneWay}"/>
+                <TextBlock VerticalAlignment="Center" Text="编码器反馈位置：" Margin="20,0,0,0"/>
+                <TextBlock VerticalAlignment="Center" Text="{Binding BackDpos, Mode=OneWay}"/>
+                <TextBlock VerticalAlignment="Center" Text="轴状态：" Margin="20,0,0,0"/>
+                <TextBlock VerticalAlignment="Center" Text="{Binding AxisStatusStr, Mode=OneWay}"/>
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Grid.Row="3" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="单轴寸动控制"
+                  Style="{StaticResource MaterialDesignGroupBox}">
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Cursor="">
+                    <TextBlock VerticalAlignment="Center" Text="运动模式："/>
+                    <RadioButton Content="绝对" GroupName="moveMode" IsChecked="{Binding RelativeMove}" Style="{StaticResource MaterialDesignChoiceChipRadioButton}" />
+                    <RadioButton Content="相对" GroupName="moveMode" Style="{StaticResource MaterialDesignChoiceChipRadioButton}" />
+                    <TextBlock VerticalAlignment="Center" Text="运动方向：" Margin="15,0,0,0"/>
+                    <RadioButton Content="正向" GroupName="moveDirection" IsChecked="{Binding ForwardDirection}" Style="{StaticResource MaterialDesignChoiceChipRadioButton}" Cursor="Hand" />
+                    <RadioButton Content="反向" GroupName="moveDirection" Style="{StaticResource MaterialDesignChoiceChipRadioButton}" />
+                </StackPanel>
+                <DockPanel LastChildFill="False" VerticalAlignment="Center" Cursor="">
+                    <TextBlock VerticalAlignment="Center" Text="寸动距离："/>
+                    <TextBox VerticalAlignment="Center" Text="{Binding InchMoveDistance}" Width="50"/>
+                    <TextBlock VerticalAlignment="Center" Text="mm"/>
+                    <Button Content="执行寸动" Command="{Binding InchMoveCommand}" Margin="15,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="停止运动" Command="{Binding StopMovingCommand}" Margin="5,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="位置清零" Command="{Binding ResetPositionCommand}" Margin="5,0,0,0"/>
+                </DockPanel>
+            </StackPanel>
+        </GroupBox>
+        <DockPanel Grid.Row="4">
+            <md:Snackbar MessageQueue="{Binding MessageQueue}"/>
+        </DockPanel>
+    </Grid>
+</Window>
