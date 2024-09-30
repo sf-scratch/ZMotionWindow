@@ -46,7 +46,6 @@ namespace ZMotionWindow.ViewModels
         public DelegateCommand ReturnZeroMotionCommand { get; set; }
 
         private Timer _slowTimer;
-        private Timer _fastTimer;
         private IntPtr _handle;
         private int _axis;//轴号
         private int _fwdIn;//正向软限位IO口
@@ -294,12 +293,9 @@ namespace ZMotionWindow.ViewModels
             this.ForwardDirection = true;
             _slowTimer = new Timer(100);
             _slowTimer.Elapsed += OnSlowTimedEvent;
-            _fastTimer = new Timer(10);
-            _fastTimer.Elapsed += OnFastTimedEvent;
             _fwdIn = 4;
             _revIn = 2;
             _datumIn = 6;
-            _ioStatus = new IOStatus();
         }
 
         private async void ReturnZeroMotion()
@@ -446,10 +442,10 @@ namespace ZMotionWindow.ViewModels
             res |= ZAux_Direct_SetOp(_handle, 16 + _axis * 2, 1); //打开使能 (OUT16.18.20.22.24.26.28.30)
             if (res == 0)
             {
-                ShowMsg("初始化成功");
                 // 启用定时器
                 _slowTimer.Enabled = true;
-                _fastTimer.Enabled = true;
+                _ioStatus = new IOStatus(_handle);
+                ShowMsg("初始化成功");
             }
             else
             {
@@ -562,13 +558,6 @@ namespace ZMotionWindow.ViewModels
                 }
                 AxisStatusStr = string.Join(", ", statusList.ToArray());
             }
-        }
-
-        private void OnFastTimedEvent(object sender, ElapsedEventArgs e)
-        {
-            int inMulti;
-            ZAux_Direct_GetInMulti(_handle, 0, 31, out inMulti); //获取多路In
-            _ioStatus.UpdateIO(inMulti);
         }
     }
 }

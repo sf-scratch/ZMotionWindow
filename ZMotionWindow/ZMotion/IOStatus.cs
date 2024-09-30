@@ -2,134 +2,82 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
+using static cszmcaux.Zmcaux;
 
 namespace ZMotionWindow.ZMotion
 {
     internal class IOStatus
     {
-        public event Action<int> In2UpdatedEvent;
-        public event Action<int> In4UpdatedEvent;
-        public event Action<int> In6UpdatedEvent;
+        public event Action<int> InUpdatedEvent;
+        private IntPtr _handle;
+        private Timer _timer;
 
-        private int in2;
+        private int inStatus;
 
-		public int In2
-		{
-			get { return in2; }
+		public int InStatus
+        {
+			get { return inStatus; }
 			set 
             { 
-                if (in2 != value)
+                if (inStatus != value)
                 {
-                    In2UpdatedEvent?.Invoke(value);
+                    InUpdatedEvent?.Invoke(value);
                 }
-                in2 = value;
+                inStatus = value;
             }
 		}
 
-        private int in4;
-
-        public int In4
+        public IOStatus(IntPtr handle)
         {
-            get { return in4; }
-            set
+            _handle = handle;
+            _timer = new Timer(10);
+            _timer.Elapsed += _timer_Elapsed;
+            _timer.Enabled = true;
+        }
+
+        private void _timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            int inMulti;
+            ZAux_Direct_GetInMulti(_handle, 0, 31, out inMulti); //获取多路In
+            InStatus = inMulti;//更新IO
+        }
+
+        public async Task<int> WaitInUpdateAsync(int inNum)
+        {
+            int originInStatus = InStatus & (1 << inNum);
+            var tcs = new TaskCompletionSource<int>();
+            void In_Updated(int inMulti)
             {
-                if (in4 != value)
+                lock (tcs)
                 {
-                    In4UpdatedEvent?.Invoke(value);
+                    if (!tcs.Task.IsCompleted)
+                    {
+                        if ((inMulti & (1 << inNum)) != originInStatus)
+                        {
+                            if (!tcs.Task.IsCompleted)
+                            {
+                                tcs.SetResult(inMulti);
+                            }
+                        }
+                    }
                 }
-                in4 = value;
-            }
-        }
-
-        private int in6;
-
-        public int In6
-        {
-            get { return in6; }
-            set
-            {
-                if (in6 != value)
-                {
-                    In6UpdatedEvent?.Invoke(value);
-                }
-                in6 = value;
-            }
-        }
-
-        /// <summary>
-        /// 更新IO
-        /// </summary>
-        /// <param name="inMulti">多路In（0 - 31）</param>
-        public void UpdateIO(int inMulti)
-        {
-            In2 = inMulti & (1 << 2);
-            In4 = inMulti & (1 << 4);
-            In6 = inMulti & (1 << 6);
-        }
-
-        public async Task<int> WaitIn2UpdateAsync()
-        {
-            return await InUpdatedAsync(In2UpdatedEvent);
-        }
-
-        public async Task<int> WaitIn4UpdateAsync()
-        {
-            int inStatus = 0;
-            var tcs = new TaskCompletionSource<int>();
-            void In_Updated(int status)
-            {
-                tcs.SetResult(status);
             };
-            In4UpdatedEvent += In_Updated;
+            InUpdatedEvent += In_Updated;
             try
             {
                 inStatus = await tcs.Task;
             }
-            finally
+            catch(Exception e)
             {
-                In4UpdatedEvent -= In_Updated;
-            }
-            return inStatus;
-        }
-
-        public async Task<int> WaitIn6UpdateAsync()
-        {
-            int inStatus = 0;
-            var tcs = new TaskCompletionSource<int>();
-            void In_Updated(int status)
-            {
-                tcs.SetResult(status);
-            };
-            In6UpdatedEvent += In_Updated;
-            try
-            {
-                inStatus = await tcs.Task;
+                throw e;
             }
             finally
             {
-                In6UpdatedEvent -= In_Updated;
-            }
-            return inStatus;
-        }
-
-        private async Task<int> InUpdatedAsync(Action<int> action)
-        {
-            int inStatus = 0;
-            var tcs = new TaskCompletionSource<int>();
-            void In_Updated(int status)
-            {
-                tcs.SetResult(status);
-            };
-            action += In_Updated;
-            try
-            {
-                inStatus = await tcs.Task;
-            }
-            finally
-            {
-                action -= In_Updated;
+                InUpdatedEvent -= In_Updated;
             }
             return inStatus;
         }

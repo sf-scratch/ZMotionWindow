@@ -30,17 +30,17 @@ namespace ZMotionWindow.ZMotion
         {
             SetMotionParam(0, 200, 200, 400, 100, 0);
             ZAux_Direct_Single_Vmove(_handle, _axis, 1);//开始正向运动
-            Task<int> taskInPositiveLimit = _ioStatus.WaitIn4UpdateAsync();
-            Task<int> taskInOrigin = _ioStatus.WaitIn6UpdateAsync();
+            Task<int> taskInPositiveLimit = _ioStatus.WaitInUpdateAsync(4);
+            Task<int> taskInOrigin = _ioStatus.WaitInUpdateAsync(6);
             Task<int> taskAny = await Task.WhenAny(taskInPositiveLimit, taskInOrigin);//等待In口变化
             if (taskAny == taskInOrigin)
             {
-                await _ioStatus.WaitIn6UpdateAsync();//等待走出原点
+                await _ioStatus.WaitInUpdateAsync(6);//等待走出原点
             }
             ZAux_Direct_Single_Cancel(_handle, _axis, 3);//停止
             SetMotionParam(0, 50, 200, 400, 100, 0);//设置返回运动参数
             ZAux_Direct_Single_Vmove(_handle, _axis, -1);
-            await _ioStatus.WaitIn6UpdateAsync();//等待触碰原点
+            await _ioStatus.WaitInUpdateAsync(6);//等待触碰原点
             ZAux_Direct_Single_Cancel(_handle, _axis, 3);//停止
             ZAux_Direct_SetDpos(_handle, _axis, 0);//位置置零
         }
