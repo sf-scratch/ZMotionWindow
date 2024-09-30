@@ -39,24 +39,21 @@ namespace ZMotionWindow.ZMotion
             _timer.Enabled = true;
         }
 
-        private void _timer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            int inMulti;
-            ZAux_Direct_GetInMulti(_handle, 0, 31, out inMulti); //获取多路In
-            InStatus = inMulti;//更新IO
-        }
-
         public async Task<int> WaitInUpdateAsync(int inNum)
         {
             int originInStatus = InStatus & (1 << inNum);
             var tcs = new TaskCompletionSource<int>();
             void In_Updated(int inMulti)
             {
-                lock (tcs)
+                //if ((inMulti & (1 << inNum)) != originInStatus)
+                //{
+                //    tcs.SetResult(inMulti);
+                //}
+                if ((inMulti & (1 << inNum)) != originInStatus)
                 {
                     if (!tcs.Task.IsCompleted)
                     {
-                        if ((inMulti & (1 << inNum)) != originInStatus)
+                        lock (tcs)
                         {
                             if (!tcs.Task.IsCompleted)
                             {
@@ -65,21 +62,25 @@ namespace ZMotionWindow.ZMotion
                         }
                     }
                 }
+
             };
             InUpdatedEvent += In_Updated;
             try
             {
                 inStatus = await tcs.Task;
             }
-            catch(Exception e)
-            {
-                throw e;
-            }
             finally
             {
                 InUpdatedEvent -= In_Updated;
             }
             return inStatus;
+        }
+
+        private void _timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            int inMulti;
+            ZAux_Direct_GetInMulti(_handle, 0, 31, out inMulti); //获取多路In
+            InStatus = inMulti;//更新IO
         }
     }
 }
