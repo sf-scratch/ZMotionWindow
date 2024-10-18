@@ -115,9 +115,11 @@
       <DependentUpon>Main.xaml</DependentUpon>
     </Compile>
     <Compile Include="Zmcaux.cs" />
+    <Compile Include="ZMotion\CustomZMotion.cs" />
     <Compile Include="ZMotion\enums\AxisStatus.cs" />
-    <Compile Include="ZMotion\IOStatus.cs" />
-    <Compile Include="ZMotion\ReturnZero.cs" />
+    <Compile Include="ZMotion\enums\MoveType.cs" />
+    <Compile Include="ZMotion\ZmotionStatus.cs" />
+    <Compile Include="ZMotion\InStatusResult.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

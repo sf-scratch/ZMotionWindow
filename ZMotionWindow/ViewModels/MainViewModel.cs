@@ -51,7 +51,7 @@ namespace ZMotionWindow.ViewModels
         private int _fwdIn;//正向软限位IO口
         private int _revIn;//负向软限位IO口
         private int _datumIn;//设置原点位映射的IO口
-        private IOStatus _ioStatus;
+        private ZmotionStatus _zmotionStatus;
 
         private SnackbarMessageQueue messageQueue;
 
@@ -295,7 +295,7 @@ namespace ZMotionWindow.ViewModels
             _slowTimer.Elapsed += OnSlowTimedEvent;
             _fwdIn = 4;
             _revIn = 2;
-            _datumIn = 6;
+            _datumIn = 0;
         }
 
         private async void ReturnZeroMotion()
@@ -352,8 +352,7 @@ namespace ZMotionWindow.ViewModels
             //} while (datumInValue == 0);
             //ZAux_Direct_Single_Cancel(_handle, _axis, 3);
             //ZAux_Direct_SetDpos(_handle, _axis, 0);
-            ReturnZero returnZero = new ReturnZero(_handle, _axis, _ioStatus, _fwdIn, _revIn, _datumIn);
-            await returnZero.StartAsync();
+            await CustomZMotion.ReturnZero(_handle, _axis, _zmotionStatus, _fwdIn, _revIn, _datumIn);
             SetMotionParam();
         }
 
@@ -366,6 +365,7 @@ namespace ZMotionWindow.ViewModels
         private void ResetPosition()
         {
             int res = ZAux_Direct_SetDpos(_handle, _axis, 0);
+            res = ZAux_Direct_SetMpos(_handle, _axis, 0);
             ShowMsg(res == 0 ? "位置清零成功！" : "位置清零失败！");
         }
 
@@ -430,9 +430,9 @@ namespace ZMotionWindow.ViewModels
 
         private void InitControl()
         {
-            _axis = 3;
+            _axis = 2;
             int res = 0;
-            res |= ZAux_Direct_SetAtype(_handle, _axis, 1);//设置轴类型为 1
+            res |= ZAux_Direct_SetAtype(_handle, _axis, 4);//设置轴类型
             res |= ZAux_Direct_SetFwdIn(_handle, _axis, _fwdIn);//设置正向软限位IO口
             res |= ZAux_Direct_SetRevIn(_handle, _axis, _revIn);//设置负向软限位IO口
             res |= ZAux_Direct_SetDatumIn(_handle, _axis, _datumIn);//设置原点位映射的IO口
@@ -444,7 +444,7 @@ namespace ZMotionWindow.ViewModels
             {
                 // 启用定时器
                 _slowTimer.Enabled = true;
-                _ioStatus = new IOStatus(_handle);
+                _zmotionStatus = new ZmotionStatus(_handle);
                 ShowMsg("初始化成功");
             }
             else
@@ -452,7 +452,7 @@ namespace ZMotionWindow.ViewModels
                 ShowMsg("初始化失败");
             }
         }
-
+        
         private async void ConnectOrCloseAsync()
         {
             try
