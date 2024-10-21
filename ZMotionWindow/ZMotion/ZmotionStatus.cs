@@ -13,13 +13,14 @@ namespace ZMotionWindow.ZMotion
 {
     public class ZmotionStatus
     {
-        public event Action<int> InUpdatedEvent;
+        public event Action<long> InUpdatedEvent;
+        public event Action<long> OutUpdatedEvent;
         private IntPtr _handle;
         private Timer _timer;
 
-        private int _inStatus;
+        private long _inStatus;
 
-		public int InStatus
+		public long InStatus
         {
 			get { return _inStatus; }
 			set 
@@ -31,6 +32,21 @@ namespace ZMotionWindow.ZMotion
                 _inStatus = value;
             }
 		}
+
+        private long _outStatus;
+
+        public long OutStatus
+        {
+            get { return _outStatus; }
+            set
+            {
+                if (_outStatus != value)
+                {
+                    OutUpdatedEvent?.Invoke(value);
+                }
+                _outStatus = value;
+            }
+        }
 
         public ZmotionStatus(IntPtr handle)
         {
@@ -48,7 +64,7 @@ namespace ZMotionWindow.ZMotion
         /// <returns></returns>
         public async Task<InStatusResult> WaitInUpdateAsync(int inNum, int waitStatus = -1)
         {
-            return await WaitInUpdateAsync(new TaskCompletionSource<int>(), inNum, waitStatus);
+            return await WaitInUpdateAsync(new TaskCompletionSource<long>(), inNum, waitStatus);
         }
 
         /// <summary>
@@ -59,10 +75,10 @@ namespace ZMotionWindow.ZMotion
         /// <returns></returns>
         public async Task<InStatusResult> WaitInUpdateWhenAnyAsync(int waitStatus, params int[] inNums)
         {
-            var dictionary = new Dictionary<Task<InStatusResult>, TaskCompletionSource<int>>();
+            var dictionary = new Dictionary<Task<InStatusResult>, TaskCompletionSource<long>>();
             foreach (int inNum in inNums)
             {
-                TaskCompletionSource<int> source = new TaskCompletionSource<int>();
+                TaskCompletionSource<long> source = new TaskCompletionSource<long>();
                 Task<InStatusResult> task = WaitInUpdateAsync(source, inNum, waitStatus);
                 dictionary.Add(task, source);
             }
@@ -77,19 +93,19 @@ namespace ZMotionWindow.ZMotion
             return result.Result;
         }
 
-        private async Task<InStatusResult> WaitInUpdateAsync(TaskCompletionSource<int> tcs, int inNum, int waitStatus)
+        private async Task<InStatusResult> WaitInUpdateAsync(TaskCompletionSource<long> tcs, int inNum, int waitStatus)
         {
-            int originInStatus = InStatus & (1 << inNum);
+            long originInStatus = InStatus & (1L << inNum);
             if ((waitStatus == 1 && originInStatus != 0) || (waitStatus == 0 && originInStatus == 0))
             {
                 return new InStatusResult(inNum, originInStatus);
             }
             System.Threading.SemaphoreSlim semaphoreSlim = new System.Threading.SemaphoreSlim(1);
-            async void In_Updated(int inMulti)
+            async void In_Updated(long inMulti)
             {
                 try
                 {
-                    int curInStatus = inMulti & (1 << inNum);
+                    long curInStatus = inMulti & (1L << inNum);
                     if ((waitStatus == 1 && curInStatus != 0) || (waitStatus == 0 && curInStatus == 0) || (waitStatus == -1 && curInStatus != originInStatus))
                     {
                         await semaphoreSlim.WaitAsync();
@@ -157,9 +173,8 @@ namespace ZMotionWindow.ZMotion
 
         private void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            int inMulti;
-            ZAux_Direct_GetInMulti(_handle, 0, 31, out inMulti); //获取多路In
-            InStatus = inMulti;//更新IO
+            InStatus = CustomZMotion.GetInMulti0_63(_handle);
+            OutStatus = CustomZMotion.GetOutMulti0_63(_handle);
         }
     }
 }

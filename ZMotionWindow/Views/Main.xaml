@@ -8,9 +8,11 @@
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         mc:Ignorable="d"
-        Title="Main" Height="550" Width="800" Cursor="">
+        Title="Main" Height="800" Width="1100" Cursor="" x:Name="main">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
@@ -99,7 +101,58 @@
                 </DockPanel>
             </StackPanel>
         </GroupBox>
-        <DockPanel Grid.Row="4">
+        <GroupBox Grid.Row="4" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom"
+                  Header="IN口状态" Style="{StaticResource MaterialDesignGroupBox}">
+            <ListBox ScrollViewer.CanContentScroll="False" 
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled" 
+                     ItemsSource="{Binding InStatusPanels}">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="md:ListBoxItemAssist.ShowSelection" Value="False"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Button VerticalAlignment="Top" Style="{StaticResource SignalButton}" Margin="5" IsEnabled="False" Content="{Binding InNum}" Tag="{Binding Tag}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </GroupBox>
+        <GroupBox Grid.Row="5" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom"
+          Header="OUT口状态" Style="{StaticResource MaterialDesignGroupBox}">
+            <ListBox ScrollViewer.CanContentScroll="False" 
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+             ScrollViewer.VerticalScrollBarVisibility="Disabled" 
+             ItemsSource="{Binding OutStatusPanels}">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="md:ListBoxItemAssist.ShowSelection" Value="False"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Button VerticalAlignment="Top" Style="{StaticResource SignalButton}" Margin="5" 
+                                Content="{Binding OutNum}" Tag="{Binding Tag}" Command="{Binding Source={x:Reference Name=main}, Path=DataContext.ChangeOutStatusCommand}" CommandParameter="{Binding}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </GroupBox>
+        <DockPanel Grid.Row="6">
             <md:Snackbar MessageQueue="{Binding MessageQueue}"/>
         </DockPanel>
     </Grid>

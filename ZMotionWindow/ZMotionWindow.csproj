@@ -110,6 +110,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Extensions\EnumExtension.cs" />
+    <Compile Include="Models\InStatusPanel.cs" />
+    <Compile Include="Models\OutStatusPanel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\Main.xaml.cs">
       <DependentUpon>Main.xaml</DependentUpon>
@@ -149,6 +151,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Resource\StyleDictionary.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\Main.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

@@ -13,8 +13,8 @@ namespace ZMotionWindow.ZMotion
 {
     public class CustomZMotion
     {
-        private static int InTriggerStatus = 1;//输入触发电平
-        private static int InCloseStatus = 0;//输入关闭电平
+        private static readonly int InTriggerStatus = 1;//输入触发电平
+        private static readonly int InCloseStatus = 0;//输入关闭电平
 
         public async static Task ReturnZero(IntPtr handle, int axis, ZmotionStatus zmotionStatus, int fwdIn, int revIn, int datumIn)
         {
@@ -30,7 +30,7 @@ namespace ZMotionWindow.ZMotion
             else
             {
                 ZAux_Direct_Single_Cancel(handle, axis, 3);//停止
-                await Task.Delay(1000);
+                await Task.Delay(1000);//触碰正限位，等待一秒再发命令
                 ZAux_Direct_Single_Vmove(handle, axis, 1);//开始正向运动
             }
             await zmotionStatus.WaitInUpdateAsync(datumIn, InTriggerStatus);//触碰原点
@@ -39,6 +39,7 @@ namespace ZMotionWindow.ZMotion
             #region 锁存回零
             SetMotionParam(handle, axis, 0, 20, 200, 400, 100, 0);//设置回零运动参数
             ZAux_Direct_Single_Vmove(handle, axis, -1);//开始反向运动
+            await zmotionStatus.WaitInUpdateAsync(datumIn, InTriggerStatus);//触碰原点
             int mode = 3;//等待 R0 下降沿的绝对位置
             ZAux_Direct_Regist(handle, axis, mode);//设置单次锁存，锁存模式：IN0 下降沿触发锁存
             int piValue = 0;
@@ -74,6 +75,24 @@ namespace ZMotionWindow.ZMotion
             #endregion
             ZAux_Direct_SetDpos(handle, axis, 0);//位置置零
             ZAux_Direct_SetMpos(handle, axis, 0);//编码器位置置零
+        }
+
+        public static long GetInMulti0_63(IntPtr handle)
+        {
+            ZAux_Direct_GetInMulti(handle, 0, 31, out int inMulti0_31); //获取多路In
+            ZAux_Direct_GetInMulti(handle, 32, 63, out int inMulti32_63); //获取多路In
+            long status = (long)inMulti32_63 << 32;
+            status = (long)inMulti0_31 | status;
+            return status;
+        }
+
+        public static long GetOutMulti0_63(IntPtr handle)
+        {
+            ZAux_Direct_GetOutMulti(handle, 0, 31, out uint outMulti0_31); //获取多路Out
+            ZAux_Direct_GetOutMulti(handle, 32, 63, out uint outMulti32_63); //获取多路Out
+            long status = (long)outMulti32_63 << 32;
+            status = (long)outMulti0_31 | status;
+            return status;
         }
 
         private static int SetMotionParam(IntPtr handle, int axis, int lSpeed, int speed, int accel, int decel, int units, int sramp)

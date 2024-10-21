@@ -41,5 +41,10 @@ namespace ZMotionWindow.Views
                 cb.Content = "未连接";
             }
         }
+
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 }

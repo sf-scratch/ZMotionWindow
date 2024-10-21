@@ -5,6 +5,7 @@ using Prism.Commands;
 using Prism.DryIoc;
 using Prism.Mvvm;
 using System;
+using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,6 +18,7 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using ZMotionWindow.Extensions;
+using ZMotionWindow.Models;
 using ZMotionWindow.ZMotion;
 using ZMotionWindow.ZMotion.enums;
 using static cszmcaux.Zmcaux;
@@ -26,24 +28,16 @@ namespace ZMotionWindow.ViewModels
     internal class MainViewModel : BindableBase
     {
         public DelegateCommand ScanIPCommand { get; set; }
-
         public DelegateCommand ConnectOrCloseCommand { get; set; }
-
         public DelegateCommand InitControlCommand { get; set; }
-
         public DelegateCommand OpenOscilloscopeCommand { get; set; }
-
         public DelegateCommand PositiveMoveCommand { get; set; }
-
         public DelegateCommand NegativeMoveCommand { get; set; }
-
         public DelegateCommand InchMoveCommand { get; set; }
-
         public DelegateCommand ResetPositionCommand { get; set; }
-
         public DelegateCommand StopMovingCommand { get; set; }
-
         public DelegateCommand ReturnZeroMotionCommand { get; set; }
+        public DelegateCommand<OutStatusPanel> ChangeOutStatusCommand { get; set; }
 
         private Timer _slowTimer;
         private IntPtr _handle;
@@ -53,215 +47,231 @@ namespace ZMotionWindow.ViewModels
         private int _datumIn;//设置原点位映射的IO口
         private ZmotionStatus _zmotionStatus;
 
-        private SnackbarMessageQueue messageQueue;
+        private SnackbarMessageQueue _messageQueue;
 
         public SnackbarMessageQueue MessageQueue
         {
-            get { return messageQueue; }
-            set { messageQueue = value; }
+            get { return _messageQueue; }
+            set { _messageQueue = value; }
         }
 
 
-        private ObservableCollection<string> ipAddressList;
+        private ObservableCollection<string> _ipAddressList;
 
         public ObservableCollection<string> IpAddressList
         {
-            get { return ipAddressList; }
-            set { ipAddressList = value; }
+            get { return _ipAddressList; }
+            set { _ipAddressList = value; }
         }
 
-        private string selectIP;
+        private ObservableCollection<InStatusPanel> _inStatusPanels;
+
+        public ObservableCollection<InStatusPanel> InStatusPanels
+        {
+            get { return _inStatusPanels; }
+            set { _inStatusPanels = value; }
+        }
+
+        private ObservableCollection<OutStatusPanel> _outStatusPanels;
+
+        public ObservableCollection<OutStatusPanel> OutStatusPanels
+        {
+            get { return _outStatusPanels; }
+            set { _outStatusPanels = value; }
+        }
+
+        private string _selectIP;
 
         public string SelectIP
         {
-            get { return selectIP; }
+            get { return _selectIP; }
             set
             {
-                selectIP = value;
+                _selectIP = value;
                 RaisePropertyChanged();
             }
         }
 
-        private bool isConnect;
+        private bool _isConnect;
 
         public bool IsConnect
         {
-            get { return isConnect; }
+            get { return _isConnect; }
             set
             {
-                isConnect = value;
+                _isConnect = value;
                 RaisePropertyChanged();
             }
         }
 
-        private bool isConnectEnable;
+        private bool _isConnectEnable;
 
         public bool IsConnectEnable
         {
-            get { return isConnectEnable; }
+            get { return _isConnectEnable; }
             set
             {
-                isConnectEnable = value;
+                _isConnectEnable = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string startingSpeed;
+        private string _startingSpeed;
         /// <summary>
         /// 轴起始速度
         /// </summary>
         public string StartingSpeed
         {
-            get { return startingSpeed; }
+            get { return _startingSpeed; }
             set
             {
-                startingSpeed = value;
+                _startingSpeed = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string runningSpeed;
+        private string _runningSpeed;
         /// <summary>
         /// 轴速度
         /// </summary>
         public string RunningSpeed
         {
-            get { return runningSpeed; }
+            get { return _runningSpeed; }
             set
             {
-                runningSpeed = value;
+                _runningSpeed = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string acceleration;
+        private string _acceleration;
         /// <summary>
         /// 轴加速度
         /// </summary>
         public string Acceleration
         {
-            get { return acceleration; }
+            get { return _acceleration; }
             set
             {
-                acceleration = value;
+                _acceleration = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string deceleration;
+        private string _deceleration;
         /// <summary>
         /// 轴减速度
         /// </summary>
         public string Deceleration
         {
-            get { return deceleration; }
+            get { return _deceleration; }
             set
             {
-                deceleration = value;
+                _deceleration = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string units;
+        private string _units;
         /// <summary>
         /// 脉冲当量
         /// </summary>
         public string Units
         {
-            get { return units; }
+            get { return _units; }
             set
             {
-                units = value;
+                _units = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string sramp;
+        private string _sramp;
         /// <summary>
         /// 轴的S曲线时间
         /// </summary>
         public string Sramp
         {
-            get { return sramp; }
+            get { return _sramp; }
             set
             {
-                sramp = value;
+                _sramp = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string inchMoveDistance;
+        private string _inchMoveDistance;
         /// <summary>
         /// 寸动距离
         /// </summary>
         public string InchMoveDistance
         {
-            get { return inchMoveDistance; }
+            get { return _inchMoveDistance; }
             set
             {
-                inchMoveDistance = value;
+                _inchMoveDistance = value;
                 RaisePropertyChanged();
             }
         }
 
-        private bool relativeMove;
+        private bool _relativeMove;
 
         public bool RelativeMove
         {
-            get { return relativeMove; }
+            get { return _relativeMove; }
             set
             {
-                relativeMove = value;
+                _relativeMove = value;
                 RaisePropertyChanged();
             }
         }
 
-        private bool forwardDirection;
+        private bool _forwardDirection;
 
         public bool ForwardDirection
         {
-            get { return forwardDirection; }
+            get { return _forwardDirection; }
             set
             {
-                forwardDirection = value;
+                _forwardDirection = value;
                 RaisePropertyChanged();
             }
         }
 
-        private float instructDpos;
+        private float _instructDpos;
 
         public float InstructDpos
         {
-            get { return instructDpos; }
+            get { return _instructDpos; }
             set
             {
-                instructDpos = value;
+                _instructDpos = value;
                 RaisePropertyChanged();
             }
         }
 
-        private float backDpos;
+        private float _backDpos;
 
         public float BackDpos
         {
-            get { return backDpos; }
+            get { return _backDpos; }
             set
             {
-                backDpos = value;
+                _backDpos = value;
                 RaisePropertyChanged();
             }
         }
 
-        private string axisStatusStr;
+        private string _axisStatusStr;
         /// <summary>
         /// 轴状态
         /// </summary>
         public string AxisStatusStr
         {
-            get { return axisStatusStr; }
+            get { return _axisStatusStr; }
             set
             {
-                axisStatusStr = value;
+                _axisStatusStr = value;
                 RaisePropertyChanged();
             }
         }
@@ -278,10 +288,13 @@ namespace ZMotionWindow.ViewModels
             this.ResetPositionCommand = new DelegateCommand(ResetPosition);
             this.StopMovingCommand = new DelegateCommand(StopMoving);
             this.ReturnZeroMotionCommand = new DelegateCommand(ReturnZeroMotion);
-            this.isConnect = false;
-            this.isConnectEnable = true;
-            this.ipAddressList = new ObservableCollection<string>();
-            this.messageQueue = new SnackbarMessageQueue();
+            this.ChangeOutStatusCommand = new DelegateCommand<OutStatusPanel>(ChangeOutStatus);
+            this._isConnect = false;
+            this._isConnectEnable = true;
+            this._ipAddressList = new ObservableCollection<string>();
+            this._inStatusPanels = new ObservableCollection<InStatusPanel>();
+            this._outStatusPanels = new ObservableCollection<OutStatusPanel>();
+            this._messageQueue = new SnackbarMessageQueue();
             this.StartingSpeed = "0";
             this.RunningSpeed = "50";
             this.Acceleration = "100";
@@ -296,6 +309,15 @@ namespace ZMotionWindow.ViewModels
             _fwdIn = 4;
             _revIn = 2;
             _datumIn = 0;
+            _axis = 2;
+        }
+
+        private void ChangeOutStatus(OutStatusPanel curPanel)
+        {
+            if (ushort.TryParse(curPanel.OutNum, out ushort outNum))
+            {
+                ZAux_Direct_SetOutMulti(_handle, outNum, outNum, new uint[] { curPanel.OutStatus == 0 ? 1U : 0U });
+            }
         }
 
         private async void ReturnZeroMotion()
@@ -416,21 +438,20 @@ namespace ZMotionWindow.ViewModels
             return res;
         }
 
-        private int SetMotionParam(int lSpeed, int speed, int accel, int decel, int units, int sramp)
+        private int SetMotionParam(int lSpeed, int speed, int accel, int decel, int _units, int _sramp)
         {
             int res = 0;
             res |= ZAux_Direct_SetLspeed(_handle, _axis, lSpeed); //设置轴起始速度
             res |= ZAux_Direct_SetSpeed(_handle, _axis, speed); //设置轴速度
             res |= ZAux_Direct_SetAccel(_handle, _axis, accel);//设置轴加速度
             res |= ZAux_Direct_SetDecel(_handle, _axis, decel);//设置轴减速度
-            res |= ZAux_Direct_SetUnits(_handle, _axis, units); //设置轴脉冲当量
-            res |= ZAux_Direct_SetSramp(_handle, _axis, sramp);//设置轴的S曲线时间
+            res |= ZAux_Direct_SetUnits(_handle, _axis, _units); //设置轴脉冲当量
+            res |= ZAux_Direct_SetSramp(_handle, _axis, _sramp);//设置轴的S曲线时间
             return res;
         }
 
         private void InitControl()
         {
-            _axis = 2;
             int res = 0;
             res |= ZAux_Direct_SetAtype(_handle, _axis, 4);//设置轴类型
             res |= ZAux_Direct_SetFwdIn(_handle, _axis, _fwdIn);//设置正向软限位IO口
@@ -442,9 +463,12 @@ namespace ZMotionWindow.ViewModels
             res |= ZAux_Direct_SetOp(_handle, 16 + _axis * 2, 1); //打开使能 (OUT16.18.20.22.24.26.28.30)
             if (res == 0)
             {
+                InitIOStatusPanels();
                 // 启用定时器
                 _slowTimer.Enabled = true;
-                _zmotionStatus = new ZmotionStatus(_handle);
+                _zmotionStatus = new ZmotionStatus(_handle); 
+                _zmotionStatus.InUpdatedEvent += ZmotionStatus_InUpdatedEvent;
+                _zmotionStatus.OutUpdatedEvent += ZmotionStatus_OutUpdatedEvent;
                 ShowMsg("初始化成功");
             }
             else
@@ -452,7 +476,22 @@ namespace ZMotionWindow.ViewModels
                 ShowMsg("初始化失败");
             }
         }
-        
+
+        private void InitIOStatusPanels()
+        {
+            int len = sizeof(long) * 8;
+            long inMulti = CustomZMotion.GetInMulti0_63(_handle);
+            for (int inNum = 0; inNum < len; inNum++)
+            {
+                _inStatusPanels.Add(new InStatusPanel(inMulti & (1L << inNum), inNum));
+            }
+            long outMulti = CustomZMotion.GetOutMulti0_63(_handle);
+            for (int outNum = 0; outNum < len; outNum++)
+            {
+                _outStatusPanels.Add(new OutStatusPanel(outMulti & (1L << outNum), outNum));
+            }
+        }
+
         private async void ConnectOrCloseAsync()
         {
             try
@@ -461,12 +500,12 @@ namespace ZMotionWindow.ViewModels
                 this.IsConnectEnable = false;
                 if (!this.IsConnect)
                 {
-                    if (string.IsNullOrEmpty(this.selectIP))
+                    if (string.IsNullOrEmpty(this._selectIP))
                     {
                         ShowMsg("未选择IP地址！");
                         return;
                     }
-                    int ret = await Task.Run(() => Zmcaux.ZAux_OpenEth(this.selectIP, out _handle));
+                    int ret = await Task.Run(() => Zmcaux.ZAux_OpenEth(this._selectIP, out _handle));
                     if (ret != 0)
                     {
                         ShowMsg("控制器连接失败！");
@@ -512,12 +551,12 @@ namespace ZMotionWindow.ViewModels
                     ShowMsg("扫描IP地址失败");
                     return;
                 }
-                this.ipAddressList.Clear();
-                this.ipAddressList.Add("127.0.0.1");//模拟控制器地址
+                this._ipAddressList.Clear();
+                this._ipAddressList.Add("127.0.0.1");//模拟控制器地址
                 string[] ethlist = builder.ToString().Trim().Split(' ');
                 foreach (string eth in ethlist)
                 {
-                    this.ipAddressList.Add(eth);
+                    this._ipAddressList.Add(eth);
                 }
                 ShowMsg("扫描IP地址成功");
             }
@@ -529,8 +568,8 @@ namespace ZMotionWindow.ViewModels
 
         private void ShowMsg(string msg)
         {
-            messageQueue.Clear();
-            messageQueue.Enqueue(msg);
+            _messageQueue.Clear();
+            _messageQueue.Enqueue(msg);
         }
 
         private void OnSlowTimedEvent(object sender, ElapsedEventArgs e)
@@ -557,6 +596,24 @@ namespace ZMotionWindow.ViewModels
                     }
                 }
                 AxisStatusStr = string.Join(", ", statusList.ToArray());
+            }
+        }
+
+        private void ZmotionStatus_InUpdatedEvent(long inMulti)
+        {
+            int len = sizeof(long) * 8;
+            for (int inNum = 0; inNum < len; inNum++)
+            {
+                _inStatusPanels[inNum].InStatus = inMulti & (1L << inNum);
+            }
+        }
+
+        private void ZmotionStatus_OutUpdatedEvent(long outMulti)
+        {
+            int len = sizeof(long) * 8;
+            for (int inNum = 0; inNum < len; inNum++)
+            {
+                _outStatusPanels[inNum].OutStatus = outMulti & (1L << inNum);
             }
         }
     }

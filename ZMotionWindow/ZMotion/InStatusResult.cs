@@ -18,17 +18,17 @@ namespace ZMotionWindow.ZMotion
             set { _inNum = value; }
         }
 
-        private int _status;
+        private long _status;
         /// <summary>
         /// 状态
         /// </summary>
-        public int Status
+        public long Status
         {
             get { return _status; }
             set { _status = value; }
         }
 
-        public InStatusResult(int inNum, int status) 
+        public InStatusResult(int inNum, long status) 
         {
             _inNum = inNum;
             _status = status;
