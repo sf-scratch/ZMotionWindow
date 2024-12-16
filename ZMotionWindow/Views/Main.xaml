@@ -144,6 +144,8 @@
                 <TextBlock VerticalAlignment="Center" Text="{Binding BackDpos, Mode=OneWay}"/>
                 <TextBlock VerticalAlignment="Center" Text="轴状态：" Margin="20,0,0,0"/>
                 <TextBlock VerticalAlignment="Center" Text="{Binding AxisStatusStr, Mode=OneWay}"/>
+                <TextBlock VerticalAlignment="Center" Text="运动状态：" Margin="20,0,0,0"/>
+                <TextBlock VerticalAlignment="Center" Text="{Binding MoveTypeStr, Mode=OneWay}"/>
             </StackPanel>
         </GroupBox>
         <GroupBox Grid.Row="3" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="单轴寸动控制"

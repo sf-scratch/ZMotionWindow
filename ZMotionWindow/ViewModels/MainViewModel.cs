@@ -252,6 +252,20 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
+        private string _moveTypeStr;
+        /// <summary>
+        /// 运动状态
+        /// </summary>
+        public string MoveTypeStr
+        {
+            get { return _moveTypeStr; }
+            set
+            {
+                _moveTypeStr = value;
+                RaisePropertyChanged();
+            }
+        }
+
         private bool _windowIsEnable;
 
         public bool WindowIsEnable
@@ -372,7 +386,7 @@ namespace ZMotionWindow.ViewModels
             WindowIsEnable = false;
             try
             {
-                await CustomZMotion.ReturnZero(_handle, _axis, _zmotionStatus, _fwdIn, _revIn, _datumIn);
+                await CustomZMotion.ReturnZeroAsync(_handle, _axis, _zmotionStatus, _fwdIn, _revIn, _datumIn);
             }
             catch (ZMotionStopException ex)
             {
@@ -400,7 +414,7 @@ namespace ZMotionWindow.ViewModels
 
         private async void StopMoving()
         {
-            int res = await CustomZMotion.Stop(_handle, _axis, _zmotionStatus);
+            int res = await CustomZMotion.StopAsync(_handle, _axis, _zmotionStatus);
             ShowMsg(res == 0 ? "停止成功！" : "停止失败！");
         }
 
@@ -601,14 +615,15 @@ namespace ZMotionWindow.ViewModels
 
         private void OnSlowTimedEvent(object sender, ElapsedEventArgs e)
         {
-            int res = 0, statusValue = 0;
+            int res = 0, axisStatus = 0, moveType = 0;
             float dpos = 0, mpos = 0;
             res |= ZAux_Direct_GetDpos(_handle, _axis, ref dpos);
             res |= ZAux_Direct_GetMpos(_handle, _axis, ref mpos);
-            res |= ZAux_Direct_GetAxisStatus(_handle, _axis, ref statusValue); //获取轴状态
+            res |= ZAux_Direct_GetAxisStatus(_handle, _axis, ref axisStatus); //获取轴状态
+            res |= ZAux_Direct_GetMtype(_handle, _axis, ref moveType); //获取运动状态
             InstructDpos = dpos;
             BackDpos = mpos;
-            if (statusValue == 0)
+            if (axisStatus == 0)
             {
                 AxisStatusStr = "正常";
             }
@@ -617,13 +632,15 @@ namespace ZMotionWindow.ViewModels
                 List<string> statusList = new List<string>();
                 foreach (AxisStatus status in Enum.GetValues(typeof(AxisStatus)))
                 {
-                    if ((statusValue & (int)status) != 0)
+                    if ((axisStatus & (int)status) != 0)
                     {
                         statusList.Add(status.GetEnumDescription());
                     }
                 }
                 AxisStatusStr = string.Join(", ", statusList.ToArray());
             }
+
+            MoveTypeStr = ((MoveType)moveType).GetEnumDescription();
         }
 
         private void ZmotionStatus_InUpdatedEvent(long inMulti)

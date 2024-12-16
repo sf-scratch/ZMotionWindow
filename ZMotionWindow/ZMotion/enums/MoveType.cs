@@ -60,9 +60,9 @@ namespace ZMotionWindow.ZMotion.enums
         MOVECIRCSP = 8,
         [Description("SP 速度的圆心螺旋运动")]
         MHELICALSP = 9,
-        [Description("1)（正向持续运动")]
+        [Description("正向持续运动")]
         FORWARD = 10,
-        [Description("-1)（负向持续运动")]
+        [Description("负向持续运动")]
         REVERSE = 11,
         [Description("回零运动中")]
         DATUMING = 12,
