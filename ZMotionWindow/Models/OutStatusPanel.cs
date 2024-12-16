@@ -21,11 +21,18 @@ namespace ZMotionWindow.Models
             }
         }
 
-        private string _outNum;
-        public string OutNum
+        private int _outNum;
+        public int OutNum
         {
             get { return _outNum; }
             set { _outNum = value; }
+        }
+
+        private string _content;
+        public string Content
+        {
+            get { return _content; }
+            set { _content = value; }
         }
 
         public string Tag
@@ -36,7 +43,8 @@ namespace ZMotionWindow.Models
         public OutStatusPanel(long outStatus, int outNum)
         {
             _outStatus = outStatus;
-            _outNum = outNum.ToString();
+            _outNum = outNum;
+            _content = string.Format("{0}", outNum);
         }
     }
 }

@@ -4,12 +4,19 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ZMotionWindow.Views"
+        xmlns:viewModel="clr-namespace:ZMotionWindow.ViewModels"
+        xmlns:behaviors="clr-namespace:ZMotionWindow.Behaviors"
+        xmlns:rules="clr-namespace:ZMotionWindow.Rules"
         xmlns:prism="http://prismlibrary.com/"
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
         mc:Ignorable="d"
-        Title="Main" Height="800" Width="1100" Cursor="" x:Name="main">
+        Title="Main" Height="800" Width="1100" Cursor="" WindowStartupLocation="CenterScreen">
     <Grid>
+        <i:Interaction.Behaviors>
+            <behaviors:ValidationExceptionBehavior/>
+        </i:Interaction.Behaviors>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
@@ -20,7 +27,7 @@
             <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
         <GroupBox md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="轴卡连接" 
-                  Style="{StaticResource MaterialDesignGroupBox}">
+                  Style="{StaticResource MaterialDesignGroupBox}" IsEnabled="{Binding WindowIsEnable}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Text="IP 地址：" />
                 <ComboBox md:HintAssist.Hint="------" ItemsSource="{Binding IpAddressList}" SelectedItem="{Binding SelectIP}">
@@ -39,10 +46,9 @@
             </StackPanel>
         </GroupBox>
         <GroupBox Grid.Row="1" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="运动参数控制" 
-          Style="{StaticResource MaterialDesignGroupBox}">
+          Style="{StaticResource MaterialDesignGroupBox}" IsEnabled="{Binding WindowIsEnable}">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="auto"/>
                     <RowDefinition Height="auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -52,23 +58,83 @@
                     <ColumnDefinition Width="3*"/>
                     <ColumnDefinition Width="2*"/>
                     <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock VerticalAlignment="Center" Text="起始速度："/>
-                <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding StartingSpeed}"/>
+                <TextBox Grid.Column="1" VerticalAlignment="Center">
+                    <TextBox.Text>
+                        <Binding Path="StartingSpeed" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                            <Binding.ValidationRules>
+                                <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
                 <TextBlock Grid.Column="2" Text="运行速度："/>
-                <TextBox Grid.Column="3" VerticalAlignment="Center" Text="{Binding RunningSpeed}"/>
+                <TextBox Grid.Column="3" VerticalAlignment="Center">
+                    <TextBox.Text>
+                        <Binding Path="RunningSpeed" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                            <Binding.ValidationRules>
+                                <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
                 <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="加速度："/>
-                <TextBox Grid.Column="5" VerticalAlignment="Center" Text="{Binding Acceleration}"/>
-                <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="减速度："/>
-                <TextBox Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Text="{Binding Deceleration}"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="S曲线时间："/>
-                <TextBox Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" Text="{Binding Sramp}"/>
-                <TextBlock Grid.Row="1" Grid.Column="4" VerticalAlignment="Center" Text="脉冲当量："/>
-                <TextBox Grid.Row="1" Grid.Column="5" VerticalAlignment="Center" Text="{Binding Units}"/>
+                <TextBox Grid.Column="5" VerticalAlignment="Center">
+                    <TextBox.Text>
+                        <Binding Path="Acceleration" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                            <Binding.ValidationRules>
+                                <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
+                <TextBlock Grid.Column="6" VerticalAlignment="Center" Text="减速度："/>
+                <TextBox Grid.Column="7" VerticalAlignment="Top">
+                    <TextBox.Text>
+                        <Binding Path="Deceleration" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                            <Binding.ValidationRules>
+                                <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
+                <TextBlock Grid.Column="8" Text="S曲线时间："/>
+                <TextBox Grid.Column="9" VerticalAlignment="Center">
+                    <TextBox.Text>
+                        <Binding Path="Sramp" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                            <Binding.ValidationRules>
+                                <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
+                <TextBlock Grid.Column="10" VerticalAlignment="Center" Text="脉冲当量："/>
+                <TextBox Grid.Column="11" VerticalAlignment="Center">
+                    <TextBox.Text>
+                        <Binding Path="Units" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                            <Binding.ValidationRules>
+                                <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
             </Grid>
         </GroupBox>
         <GroupBox Grid.Row="2" md:ColorZoneAssist.Background="Black" md:ColorZoneAssist.Foreground="White" md:ColorZoneAssist.Mode="Custom" Header="单轴持续运动控制" 
-          Style="{StaticResource MaterialDesignGroupBox}">
+          Style="{StaticResource MaterialDesignGroupBox}" IsEnabled="{Binding WindowIsEnable}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Content="正向" Command="{Binding PositiveMoveCommand}" Margin="5,0,0,0"/>
                 <Button Content="反向" Command="{Binding NegativeMoveCommand}" Margin="5,0,0,0"/>
@@ -93,11 +159,22 @@
                 </StackPanel>
                 <DockPanel LastChildFill="False" VerticalAlignment="Center" Cursor="">
                     <TextBlock VerticalAlignment="Center" Text="寸动距离："/>
-                    <TextBox VerticalAlignment="Center" Text="{Binding InchMoveDistance}" Width="50"/>
+                    <TextBox VerticalAlignment="Center" Width="50">
+                        <TextBox.Text>
+                            <Binding Path="InchMoveDistance" UpdateSourceTrigger="PropertyChanged" NotifyOnValidationError="True">
+                                <Binding.ValidationRules>
+                                    <rules:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                    <rules:IsDigitalValidationRule ValidatesOnTargetUpdated="True"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
                     <TextBlock VerticalAlignment="Center" Text="mm"/>
-                    <Button Content="执行寸动" Command="{Binding InchMoveCommand}" Margin="15,0,0,0"/>
-                    <Button DockPanel.Dock="Right" Content="停止运动" Command="{Binding StopMovingCommand}" Margin="5,0,0,0"/>
-                    <Button DockPanel.Dock="Right" Content="位置清零" Command="{Binding ResetPositionCommand}" Margin="5,0,0,0"/>
+                    <Button Content="执行寸动" Command="{Binding InchMoveCommand}" IsEnabled="{Binding WindowIsEnable}" Margin="15,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="停止" Command="{Binding StopMovingCommand}" Margin="5,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="暂停" Command="{Binding PauseMovingCommand}" Margin="5,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="继续" Command="{Binding ResumeMovingCommand}" Margin="5,0,0,0"/>
+                    <Button DockPanel.Dock="Right" Content="位置置零" Command="{Binding ResetPositionCommand}" IsEnabled="{Binding WindowIsEnable}" Margin="5,0,0,0"/>
                 </DockPanel>
             </StackPanel>
         </GroupBox>
@@ -121,7 +198,7 @@
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Button VerticalAlignment="Top" Style="{StaticResource SignalButton}" Margin="5" IsEnabled="False" Content="{Binding InNum}" Tag="{Binding Tag}"/>
+                        <Button VerticalAlignment="Top" Style="{StaticResource SignalButton}" Margin="5" IsEnabled="False" Content="{Binding Content}" Tag="{Binding Tag}"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -147,7 +224,9 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Button VerticalAlignment="Top" Style="{StaticResource SignalButton}" Margin="5" 
-                                Content="{Binding OutNum}" Tag="{Binding Tag}" Command="{Binding Source={x:Reference Name=main}, Path=DataContext.ChangeOutStatusCommand}" CommandParameter="{Binding}"/>
+                                Content="{Binding Content}" Tag="{Binding Tag}" 
+                                Command="{Binding RelativeSource={RelativeSource AncestorType=ListBox}, Path=DataContext.ChangeOutStatusCommand}" 
+                                CommandParameter="{Binding}"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

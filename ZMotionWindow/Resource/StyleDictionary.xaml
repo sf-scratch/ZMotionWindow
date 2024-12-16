@@ -9,8 +9,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
-                    <Border Name="Border" 
-                            CornerRadius="0"
+                    <Border CornerRadius="0"
                             BorderThickness="{TemplateBinding BorderThickness}" 
                             Background="{TemplateBinding BorderBrush}" >
                         <Grid>
@@ -18,14 +17,14 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="1*"/>
                             </Grid.RowDefinitions>
-                            <Ellipse Grid.Row="0" Name="Ellipse"
+                            <Ellipse Grid.Row="0"
                                     Height="20"
                                     Width="20"
                                     VerticalAlignment="Top"
                                     HorizontalAlignment="Left"
                                     Fill="{TemplateBinding Background}">
                             </Ellipse>
-                            <ContentPresenter Grid.Row="1" x:Name="contentPresenter"
+                            <ContentPresenter Grid.Row="1"
                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                           SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"

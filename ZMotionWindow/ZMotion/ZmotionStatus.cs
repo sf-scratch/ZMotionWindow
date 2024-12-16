@@ -7,16 +7,18 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using ZMotionWindow.ZMotion.enums;
+using ZMotionWindow.ZMotion.exceptions;
 using static cszmcaux.Zmcaux;
 
 namespace ZMotionWindow.ZMotion
 {
-    public class ZmotionStatus
+    public class ZmotionStatus : IDisposable
     {
         public event Action<long> InUpdatedEvent;
         public event Action<long> OutUpdatedEvent;
         private IntPtr _handle;
         private Timer _timer;
+        private Dictionary<string, TaskCompletionSource<InStatusResult>> RuningTcsDic;
 
         private long _inStatus;
 
@@ -54,6 +56,7 @@ namespace ZMotionWindow.ZMotion
             _timer = new Timer(10);
             _timer.Elapsed += timer_Elapsed;
             _timer.Enabled = true;
+            RuningTcsDic = new Dictionary<string, TaskCompletionSource<InStatusResult>>();
         }
 
         /// <summary>
@@ -64,7 +67,12 @@ namespace ZMotionWindow.ZMotion
         /// <returns></returns>
         public async Task<InStatusResult> WaitInUpdateAsync(int inNum, int waitStatus = -1)
         {
-            return await WaitInUpdateAsync(new TaskCompletionSource<long>(), inNum, waitStatus);
+            string tckId = Guid.NewGuid().ToString();
+            TaskCompletionSource<InStatusResult> tck = new TaskCompletionSource<InStatusResult>();
+            RuningTcsDic.Add(tckId, tck);
+            InStatusResult result = await WaitInUpdateAsync(tck, inNum, waitStatus);
+            RuningTcsDic.Remove(tckId);
+            return result;
         }
 
         /// <summary>
@@ -75,25 +83,44 @@ namespace ZMotionWindow.ZMotion
         /// <returns></returns>
         public async Task<InStatusResult> WaitInUpdateWhenAnyAsync(int waitStatus, params int[] inNums)
         {
-            var dictionary = new Dictionary<Task<InStatusResult>, TaskCompletionSource<long>>();
+            var dictionary = new Dictionary<Task<InStatusResult>, string>();
             foreach (int inNum in inNums)
             {
-                TaskCompletionSource<long> source = new TaskCompletionSource<long>();
+                string tckId = Guid.NewGuid().ToString();
+                TaskCompletionSource<InStatusResult> source = new TaskCompletionSource<InStatusResult>();
+                RuningTcsDic.Add(tckId, source);
                 Task<InStatusResult> task = WaitInUpdateAsync(source, inNum, waitStatus);
-                dictionary.Add(task, source);
+                dictionary.Add(task, tckId);
             }
             Task<InStatusResult> result = await Task.WhenAny(dictionary.Keys);
             foreach (Task<InStatusResult> task in dictionary.Keys)
             {
-                if (task != result && !dictionary[task].Task.IsCompleted)//关闭未结束的任务
+                string tckId = dictionary[task];
+                if (task != result && RuningTcsDic.ContainsKey(tckId) && !RuningTcsDic[tckId].Task.IsCompleted)//关闭未结束的任务
                 {
-                    dictionary[task].SetResult(-1);
+                    RuningTcsDic[tckId].SetResult(new InStatusResult(TckIntention.Stop));
+                    RuningTcsDic.Remove(tckId);
                 }
             }
-            return result.Result;
+            return await result;
         }
 
-        private async Task<InStatusResult> WaitInUpdateAsync(TaskCompletionSource<long> tcs, int inNum, int waitStatus)
+        public async Task StopAllWaiting()
+        {
+            await Task.Run(() =>
+            {
+                lock (RuningTcsDic)
+                {
+                    foreach (var item in RuningTcsDic.Values)
+                    {
+                        item.SetResult(new InStatusResult(TckIntention.StopThrowErr));
+                    }
+                    RuningTcsDic.Clear();
+                }
+            });
+        }
+
+        private async Task<InStatusResult> WaitInUpdateAsync(TaskCompletionSource<InStatusResult> tcs, int inNum, int waitStatus)
         {
             long originInStatus = InStatus & (1L << inNum);
             if ((waitStatus == 1 && originInStatus != 0) || (waitStatus == 0 && originInStatus == 0))
@@ -114,7 +141,7 @@ namespace ZMotionWindow.ZMotion
                             InUpdatedEvent -= In_Updated;
                             if (!tcs.Task.IsCompleted)
                             {
-                                tcs.SetResult(curInStatus);
+                                tcs.SetResult(new InStatusResult(inNum, curInStatus));
                             }
                         }
                     }
@@ -128,7 +155,12 @@ namespace ZMotionWindow.ZMotion
             InUpdatedEvent += In_Updated;
             try
             {
-                _inStatus = await tcs.Task;
+                InStatusResult result = await tcs.Task;
+                if (result.Intention == TckIntention.StopThrowErr)
+                {
+                    throw new ZMotionStopException();
+                }
+                _inStatus = result.Status;
             }
             finally
             {
@@ -137,44 +169,50 @@ namespace ZMotionWindow.ZMotion
             return new InStatusResult(inNum, _inStatus);
         }
 
-        public async Task WaitExpectedResultAsync<T>(Func<T> func, T expectedResult)
-        {
-            TaskCompletionSource<int> source = new TaskCompletionSource<int>();
-            System.Threading.SemaphoreSlim semaphoreSlim = new System.Threading.SemaphoreSlim(1);
-            async void Timer_Elapsed(object sender, ElapsedEventArgs e)
-            {
-                try
-                {
-                    T result = func.Invoke();
-                    if (result.Equals(expectedResult) && !source.Task.IsCompleted)
-                    {
-                        await semaphoreSlim.WaitAsync();
-                        if (result.Equals(expectedResult) && !source.Task.IsCompleted)
-                        {
-                            source.SetResult(0);
-                        }
-                    }
-                }
-                finally
-                {
-                    semaphoreSlim.Release();
-                }
-            }
-            _timer.Elapsed += Timer_Elapsed;
-            try
-            {
-                await source.Task;
-            }
-            finally
-            {
-                _timer.Elapsed -= Timer_Elapsed;
-            }
-        }
+        //public async Task WaitExpectedResultAsync<T>(Func<T> func, T expectedResult)
+        //{
+        //    TaskCompletionSource<int> source = new TaskCompletionSource<int>();
+        //    System.Threading.SemaphoreSlim semaphoreSlim = new System.Threading.SemaphoreSlim(1);
+        //    async void Timer_Elapsed(object sender, ElapsedEventArgs e)
+        //    {
+        //        try
+        //        {
+        //            T result = func.Invoke();
+        //            if (result.Equals(expectedResult) && !source.Task.IsCompleted)
+        //            {
+        //                await semaphoreSlim.WaitAsync();
+        //                if (result.Equals(expectedResult) && !source.Task.IsCompleted)
+        //                {
+        //                    source.SetResult(0);
+        //                }
+        //            }
+        //        }
+        //        finally
+        //        {
+        //            semaphoreSlim.Release();
+        //        }
+        //    }
+        //    _timer.Elapsed += Timer_Elapsed;
+        //    try
+        //    {
+        //        await source.Task;
+        //    }
+        //    finally
+        //    {
+        //        _timer.Elapsed -= Timer_Elapsed;
+        //    }
+        //}
 
         private void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             InStatus = CustomZMotion.GetInMulti0_63(_handle);
             OutStatus = CustomZMotion.GetOutMulti0_63(_handle);
+        }
+
+        public void Dispose()
+        {
+            _timer.Stop();
+            _timer.Dispose();
         }
     }
 }

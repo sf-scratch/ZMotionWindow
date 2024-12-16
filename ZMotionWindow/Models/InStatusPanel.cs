@@ -21,11 +21,18 @@ namespace ZMotionWindow.Models
             }
         }
 
-        private string _inNum;
-        public string InNum
+        private int _inNum;
+        public int InNum
         {
             get { return _inNum; }
             set { _inNum = value; }
+        }
+
+        private string _content;
+        public string Content
+        {
+            get { return _content; }
+            set { _content = value; }
         }
 
         public string Tag
@@ -36,7 +43,8 @@ namespace ZMotionWindow.Models
         public InStatusPanel(long inStatus, int inNum)
         {
             _inStatus = inStatus;
-            _inNum = inNum.ToString();
+            _inNum = inNum;
+            _content = string.Format("{0}", inNum);
         }
     }
 }

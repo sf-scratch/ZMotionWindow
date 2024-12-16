@@ -17,15 +17,17 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
+using ZMotionWindow.Behaviors;
 using ZMotionWindow.Extensions;
 using ZMotionWindow.Models;
 using ZMotionWindow.ZMotion;
 using ZMotionWindow.ZMotion.enums;
+using ZMotionWindow.ZMotion.exceptions;
 using static cszmcaux.Zmcaux;
 
 namespace ZMotionWindow.ViewModels
 {
-    internal class MainViewModel : BindableBase
+    internal class MainViewModel : BindableBase, IValidationExceptionHandler
     {
         public DelegateCommand ScanIPCommand { get; set; }
         public DelegateCommand ConnectOrCloseCommand { get; set; }
@@ -36,8 +38,15 @@ namespace ZMotionWindow.ViewModels
         public DelegateCommand InchMoveCommand { get; set; }
         public DelegateCommand ResetPositionCommand { get; set; }
         public DelegateCommand StopMovingCommand { get; set; }
+        public DelegateCommand PauseMovingCommand { get; set; }
+        public DelegateCommand ResumeMovingCommand { get; set; }
         public DelegateCommand ReturnZeroMotionCommand { get; set; }
         public DelegateCommand<OutStatusPanel> ChangeOutStatusCommand { get; set; }
+
+        public SnackbarMessageQueue MessageQueue { get; set; }
+        public ObservableCollection<string> IpAddressList { get; set; }
+        public ObservableCollection<InStatusPanel> InStatusPanels { get; set; }
+        public ObservableCollection<OutStatusPanel> OutStatusPanels { get; set; }
 
         private Timer _slowTimer;
         private IntPtr _handle;
@@ -46,39 +55,6 @@ namespace ZMotionWindow.ViewModels
         private int _revIn;//负向软限位IO口
         private int _datumIn;//设置原点位映射的IO口
         private ZmotionStatus _zmotionStatus;
-
-        private SnackbarMessageQueue _messageQueue;
-
-        public SnackbarMessageQueue MessageQueue
-        {
-            get { return _messageQueue; }
-            set { _messageQueue = value; }
-        }
-
-
-        private ObservableCollection<string> _ipAddressList;
-
-        public ObservableCollection<string> IpAddressList
-        {
-            get { return _ipAddressList; }
-            set { _ipAddressList = value; }
-        }
-
-        private ObservableCollection<InStatusPanel> _inStatusPanels;
-
-        public ObservableCollection<InStatusPanel> InStatusPanels
-        {
-            get { return _inStatusPanels; }
-            set { _inStatusPanels = value; }
-        }
-
-        private ObservableCollection<OutStatusPanel> _outStatusPanels;
-
-        public ObservableCollection<OutStatusPanel> OutStatusPanels
-        {
-            get { return _outStatusPanels; }
-            set { _outStatusPanels = value; }
-        }
 
         private string _selectIP;
 
@@ -116,11 +92,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _startingSpeed;
+        private float _startingSpeed;
         /// <summary>
         /// 轴起始速度
         /// </summary>
-        public string StartingSpeed
+        public float StartingSpeed
         {
             get { return _startingSpeed; }
             set
@@ -130,11 +106,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _runningSpeed;
+        private float _runningSpeed;
         /// <summary>
         /// 轴速度
         /// </summary>
-        public string RunningSpeed
+        public float RunningSpeed
         {
             get { return _runningSpeed; }
             set
@@ -144,11 +120,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _acceleration;
+        private float _acceleration;
         /// <summary>
         /// 轴加速度
         /// </summary>
-        public string Acceleration
+        public float Acceleration
         {
             get { return _acceleration; }
             set
@@ -158,11 +134,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _deceleration;
+        private float _deceleration;
         /// <summary>
         /// 轴减速度
         /// </summary>
-        public string Deceleration
+        public float Deceleration
         {
             get { return _deceleration; }
             set
@@ -172,11 +148,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _units;
+        private float _units;
         /// <summary>
         /// 脉冲当量
         /// </summary>
-        public string Units
+        public float Units
         {
             get { return _units; }
             set
@@ -186,11 +162,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _sramp;
+        private float _sramp;
         /// <summary>
         /// 轴的S曲线时间
         /// </summary>
-        public string Sramp
+        public float Sramp
         {
             get { return _sramp; }
             set
@@ -200,11 +176,11 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
-        private string _inchMoveDistance;
+        private float _inchMoveDistance;
         /// <summary>
         /// 寸动距离
         /// </summary>
-        public string InchMoveDistance
+        public float InchMoveDistance
         {
             get { return _inchMoveDistance; }
             set
@@ -276,6 +252,24 @@ namespace ZMotionWindow.ViewModels
             }
         }
 
+        private bool _windowIsEnable;
+
+        public bool WindowIsEnable
+        {
+            get { return _windowIsEnable; }
+            set
+            {
+                _windowIsEnable = value;
+                RaisePropertyChanged();
+            }
+        }
+
+
+        /// <summary>
+        /// 输入的数据是否全部有效
+        /// </summary>
+        public bool IsAllValid { get ; set ; }
+
         public MainViewModel()
         {
             this.ScanIPCommand = new DelegateCommand(ScanIP);
@@ -287,23 +281,27 @@ namespace ZMotionWindow.ViewModels
             this.InchMoveCommand = new DelegateCommand(InchMove);
             this.ResetPositionCommand = new DelegateCommand(ResetPosition);
             this.StopMovingCommand = new DelegateCommand(StopMoving);
+            this.PauseMovingCommand = new DelegateCommand(PauseMoving);
+            this.ResumeMovingCommand = new DelegateCommand(ResumeMoving);
             this.ReturnZeroMotionCommand = new DelegateCommand(ReturnZeroMotion);
             this.ChangeOutStatusCommand = new DelegateCommand<OutStatusPanel>(ChangeOutStatus);
             this._isConnect = false;
             this._isConnectEnable = true;
-            this._ipAddressList = new ObservableCollection<string>();
-            this._inStatusPanels = new ObservableCollection<InStatusPanel>();
-            this._outStatusPanels = new ObservableCollection<OutStatusPanel>();
-            this._messageQueue = new SnackbarMessageQueue();
-            this.StartingSpeed = "0";
-            this.RunningSpeed = "50";
-            this.Acceleration = "100";
-            this.Deceleration = "100";
-            this.Units = "100";
-            this.Sramp = "200";
-            this.InchMoveDistance = "100";
+            this.IpAddressList = new ObservableCollection<string>();
+            this.InStatusPanels = new ObservableCollection<InStatusPanel>();
+            this.OutStatusPanels = new ObservableCollection<OutStatusPanel>();
+            this.MessageQueue = new SnackbarMessageQueue();
+            this.StartingSpeed = 0;
+            this.RunningSpeed = 50;
+            this.Acceleration = 100;
+            this.Deceleration = 100;
+            this.Units = 100;
+            this.Sramp = 200;
+            this.InchMoveDistance = 100;
             this.RelativeMove = true;
             this.ForwardDirection = true;
+            this.IsAllValid = true;
+            _windowIsEnable = true;
             _slowTimer = new Timer(100);
             _slowTimer.Elapsed += OnSlowTimedEvent;
             _fwdIn = 4;
@@ -314,10 +312,7 @@ namespace ZMotionWindow.ViewModels
 
         private void ChangeOutStatus(OutStatusPanel curPanel)
         {
-            if (ushort.TryParse(curPanel.OutNum, out ushort outNum))
-            {
-                ZAux_Direct_SetOutMulti(_handle, outNum, outNum, new uint[] { curPanel.OutStatus == 0 ? 1U : 0U });
-            }
+            ZAux_Direct_SetOutMulti(_handle, (ushort)curPanel.OutNum, (ushort)curPanel.OutNum, new uint[] { curPanel.OutStatus == 0 ? 1U : 0U });
         }
 
         private async void ReturnZeroMotion()
@@ -374,14 +369,39 @@ namespace ZMotionWindow.ViewModels
             //} while (datumInValue == 0);
             //ZAux_Direct_Single_Cancel(_handle, _axis, 3);
             //ZAux_Direct_SetDpos(_handle, _axis, 0);
-            await CustomZMotion.ReturnZero(_handle, _axis, _zmotionStatus, _fwdIn, _revIn, _datumIn);
+            WindowIsEnable = false;
+            try
+            {
+                await CustomZMotion.ReturnZero(_handle, _axis, _zmotionStatus, _fwdIn, _revIn, _datumIn);
+            }
+            catch (ZMotionStopException ex)
+            {
+                ShowMsg("回零中止！");
+            }
+            catch (Exception ex)
+            {
+                ShowMsg(ex.Message);
+            }
             SetMotionParam();
+            WindowIsEnable = true;
         }
 
-        private void StopMoving()
+        private void ResumeMoving()
         {
-            int res = ZAux_Direct_Single_Cancel(_handle, _axis, 2);
-            ShowMsg(res == 0 ? "停止运动成功！" : "停止运动失败！");
+            int res = ZAux_Direct_MoveResume(_handle, _axis);
+            ShowMsg(res == 0 ? "继续成功！" : "继续失败！");
+        }
+
+        private void PauseMoving()
+        {
+            int res = ZAux_Direct_MovePause(_handle, _axis, 3);
+            ShowMsg(res == 0 ? "暂停成功！" : "暂停失败！");
+        }
+
+        private async void StopMoving()
+        {
+            int res = await CustomZMotion.Stop(_handle, _axis, _zmotionStatus);
+            ShowMsg(res == 0 ? "停止成功！" : "停止失败！");
         }
 
         private void ResetPosition()
@@ -393,17 +413,20 @@ namespace ZMotionWindow.ViewModels
 
         private void InchMove()
         {
-            int res = SetMotionParam();
-            int moveDirection = ForwardDirection ? 1 : -1;//运动方向
-            if (RelativeMove)//运动模式
+            if (SetMotionParam() == 0)
             {
-                res |= ZAux_Direct_Single_MoveAbs(_handle, _axis, Convert.ToSingle(InchMoveDistance) * moveDirection);
+                int res = 0;
+                int moveDirection = ForwardDirection ? 1 : -1;//运动方向
+                if (RelativeMove)//运动模式
+                {
+                    res |= ZAux_Direct_Single_MoveAbs(_handle, _axis, Convert.ToSingle(InchMoveDistance) * moveDirection);
+                }
+                else
+                {
+                    res |= ZAux_Direct_Single_Move(_handle, _axis, Convert.ToSingle(InchMoveDistance) * moveDirection);
+                }
+                ShowMsg(res == 0 ? "执行寸动成功！" : "执行寸动失败！");
             }
-            else
-            {
-                res |= ZAux_Direct_Single_Move(_handle, _axis, Convert.ToSingle(InchMoveDistance) * moveDirection);
-            }
-            ShowMsg(res == 0 ? "执行寸动成功！" : "执行寸动失败！");
         }
 
         private void OpenOscilloscope()
@@ -414,39 +437,40 @@ namespace ZMotionWindow.ViewModels
 
         private void PositiveMove()
         {
-            int res = SetMotionParam();
-            res |= ZAux_Direct_Single_Vmove(_handle, _axis, 1);
-            ShowMsg(res == 0 ? "开始正向运动" : "开始正向失败！");
+            if (SetMotionParam() == 0)
+            {
+                int res = 0;
+                res |= ZAux_Direct_Single_Vmove(_handle, _axis, 1);
+                ShowMsg(res == 0 ? "开始正向运动" : "开始正向失败！");
+            }
         }
 
         private void NegativeMove()
         {
-            int res = SetMotionParam();
-            res |= ZAux_Direct_Single_Vmove(_handle, _axis, -1);
-            ShowMsg(res == 0 ? "开始反向运动" : "开始反向失败！");
+            if (SetMotionParam() == 0)
+            {
+                int res = 0;
+                res |= ZAux_Direct_Single_Vmove(_handle, _axis, -1);
+                ShowMsg(res == 0 ? "开始反向运动" : "开始反向失败！");
+            }
         }
 
         private int SetMotionParam()
         {
             int res = 0;
-            res |= ZAux_Direct_SetLspeed(_handle, _axis, Convert.ToSingle(StartingSpeed)); //设置轴起始速度
-            res |= ZAux_Direct_SetSpeed(_handle, _axis, Convert.ToSingle(RunningSpeed)); //设置轴速度
-            res |= ZAux_Direct_SetAccel(_handle, _axis, Convert.ToSingle(Acceleration));//设置轴加速度
-            res |= ZAux_Direct_SetDecel(_handle, _axis, Convert.ToSingle(Deceleration));//设置轴减速度
-            res |= ZAux_Direct_SetUnits(_handle, _axis, Convert.ToSingle(Units)); //设置轴脉冲当量
-            res |= ZAux_Direct_SetSramp(_handle, _axis, Convert.ToSingle(Sramp));//设置轴的S曲线时间
-            return res;
-        }
-
-        private int SetMotionParam(int lSpeed, int speed, int accel, int decel, int _units, int _sramp)
-        {
-            int res = 0;
-            res |= ZAux_Direct_SetLspeed(_handle, _axis, lSpeed); //设置轴起始速度
-            res |= ZAux_Direct_SetSpeed(_handle, _axis, speed); //设置轴速度
-            res |= ZAux_Direct_SetAccel(_handle, _axis, accel);//设置轴加速度
-            res |= ZAux_Direct_SetDecel(_handle, _axis, decel);//设置轴减速度
-            res |= ZAux_Direct_SetUnits(_handle, _axis, _units); //设置轴脉冲当量
-            res |= ZAux_Direct_SetSramp(_handle, _axis, _sramp);//设置轴的S曲线时间
+            if (IsAllValid)
+            {
+                res = CustomZMotion.SetMotionParam(_handle, _axis, StartingSpeed, RunningSpeed, Acceleration, Deceleration, Units, Sramp);
+                if (res != 0)
+                {
+                    ShowMsg("设置运动参数出现异常");
+                }
+            }
+            else
+            {
+                ShowMsg("输入的运动参数格式有误");
+                res = -1;
+            }
             return res;
         }
 
@@ -466,6 +490,7 @@ namespace ZMotionWindow.ViewModels
                 InitIOStatusPanels();
                 // 启用定时器
                 _slowTimer.Enabled = true;
+                _zmotionStatus?.Dispose();
                 _zmotionStatus = new ZmotionStatus(_handle); 
                 _zmotionStatus.InUpdatedEvent += ZmotionStatus_InUpdatedEvent;
                 _zmotionStatus.OutUpdatedEvent += ZmotionStatus_OutUpdatedEvent;
@@ -479,16 +504,18 @@ namespace ZMotionWindow.ViewModels
 
         private void InitIOStatusPanels()
         {
+            InStatusPanels.Clear();
+            OutStatusPanels.Clear();
             int len = sizeof(long) * 8;
             long inMulti = CustomZMotion.GetInMulti0_63(_handle);
             for (int inNum = 0; inNum < len; inNum++)
             {
-                _inStatusPanels.Add(new InStatusPanel(inMulti & (1L << inNum), inNum));
+                InStatusPanels.Add(new InStatusPanel(inMulti & (1L << inNum), inNum));
             }
             long outMulti = CustomZMotion.GetOutMulti0_63(_handle);
             for (int outNum = 0; outNum < len; outNum++)
             {
-                _outStatusPanels.Add(new OutStatusPanel(outMulti & (1L << outNum), outNum));
+                OutStatusPanels.Add(new OutStatusPanel(outMulti & (1L << outNum), outNum));
             }
         }
 
@@ -551,12 +578,12 @@ namespace ZMotionWindow.ViewModels
                     ShowMsg("扫描IP地址失败");
                     return;
                 }
-                this._ipAddressList.Clear();
-                this._ipAddressList.Add("127.0.0.1");//模拟控制器地址
+                this.IpAddressList.Clear();
+                this.IpAddressList.Add("127.0.0.1");//本地仿真控制器地址
                 string[] ethlist = builder.ToString().Trim().Split(' ');
                 foreach (string eth in ethlist)
                 {
-                    this._ipAddressList.Add(eth);
+                    this.IpAddressList.Add(eth);
                 }
                 ShowMsg("扫描IP地址成功");
             }
@@ -568,8 +595,8 @@ namespace ZMotionWindow.ViewModels
 
         private void ShowMsg(string msg)
         {
-            _messageQueue.Clear();
-            _messageQueue.Enqueue(msg);
+            MessageQueue.Clear();
+            MessageQueue.Enqueue(msg);
         }
 
         private void OnSlowTimedEvent(object sender, ElapsedEventArgs e)
@@ -604,16 +631,16 @@ namespace ZMotionWindow.ViewModels
             int len = sizeof(long) * 8;
             for (int inNum = 0; inNum < len; inNum++)
             {
-                _inStatusPanels[inNum].InStatus = inMulti & (1L << inNum);
+                InStatusPanels[inNum].InStatus = inMulti & (1L << inNum);
             }
         }
 
         private void ZmotionStatus_OutUpdatedEvent(long outMulti)
         {
             int len = sizeof(long) * 8;
-            for (int inNum = 0; inNum < len; inNum++)
+            for (int outNum = 0; outNum < len; outNum++)
             {
-                _outStatusPanels[inNum].OutStatus = outMulti & (1L << inNum);
+                OutStatusPanels[outNum].OutStatus = outMulti & (1L << outNum);
             }
         }
     }
