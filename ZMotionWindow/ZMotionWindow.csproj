@@ -119,6 +119,7 @@
     <Compile Include="ZMotion\enums\AxisStatus.cs" />
     <Compile Include="ZMotion\enums\MoveType.cs" />
     <Compile Include="ZMotion\exceptions\ZMotionStopException.cs" />
+    <Compile Include="ZMotion\exceptions\ZMotionStopTimeOutException.cs" />
     <Compile Include="ZMotion\ZmotionStatus.cs" />
     <Compile Include="ZMotion\InStatusResult.cs" />
   </ItemGroup>

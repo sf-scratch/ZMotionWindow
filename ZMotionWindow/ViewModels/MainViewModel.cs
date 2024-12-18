@@ -309,7 +309,7 @@ namespace ZMotionWindow.ViewModels
             this.RunningSpeed = 50;
             this.Acceleration = 100;
             this.Deceleration = 100;
-            this.Units = 100;
+            this.Units = 200;
             this.Sramp = 200;
             this.InchMoveDistance = 100;
             this.RelativeMove = true;
@@ -383,10 +383,15 @@ namespace ZMotionWindow.ViewModels
             //} while (datumInValue == 0);
             //ZAux_Direct_Single_Cancel(_handle, _axis, 3);
             //ZAux_Direct_SetDpos(_handle, _axis, 0);
+
+
+
             WindowIsEnable = false;
             try
             {
                 await CustomZMotion.ReturnZeroAsync(_handle, _axis, _zmotionStatus, _fwdIn, _revIn, _datumIn);
+                ZAux_Direct_SetFsLimit(_handle, _axis, 5000);//设置正向软限位为
+                ZAux_Direct_SetRsLimit(_handle, _axis, -5000);//设置负向软限位为
             }
             catch (ZMotionStopException ex)
             {
@@ -398,6 +403,7 @@ namespace ZMotionWindow.ViewModels
             }
             SetMotionParam();
             WindowIsEnable = true;
+
         }
 
         private void ResumeMoving()
@@ -414,8 +420,19 @@ namespace ZMotionWindow.ViewModels
 
         private async void StopMoving()
         {
-            int res = await CustomZMotion.StopAsync(_handle, _axis, _zmotionStatus);
-            ShowMsg(res == 0 ? "停止成功！" : "停止失败！");
+            try
+            {
+                int res = await CustomZMotion.StopAsync(_handle, _axis, _zmotionStatus);
+                ShowMsg(res == 0 ? "停止成功！" : "停止失败！");
+            }
+            catch(ZMotionStopTimeOutException ex)
+            {
+                ShowMsg(ex.Message);
+            }
+            catch(Exception ex)
+            {
+                ShowMsg(ex.Message);
+            }
         }
 
         private void ResetPosition()
@@ -495,8 +512,6 @@ namespace ZMotionWindow.ViewModels
             res |= ZAux_Direct_SetFwdIn(_handle, _axis, _fwdIn);//设置正向软限位IO口
             res |= ZAux_Direct_SetRevIn(_handle, _axis, _revIn);//设置负向软限位IO口
             res |= ZAux_Direct_SetDatumIn(_handle, _axis, _datumIn);//设置原点位映射的IO口
-            res |= ZAux_Direct_SetFsLimit(_handle, _axis, 5000);//设置正向软限位为
-            res |= ZAux_Direct_SetRsLimit(_handle, _axis, -5000);//设置负向软限位为
             res |= ZAux_Direct_SetFastDec(_handle, _axis, 4000); //设置快减速度
             res |= ZAux_Direct_SetOp(_handle, 16 + _axis * 2, 1); //打开使能 (OUT16.18.20.22.24.26.28.30)
             if (res == 0)

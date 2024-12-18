@@ -12,7 +12,7 @@
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
         mc:Ignorable="d"
-        Title="Main" Height="800" Width="1100" Cursor="" WindowStartupLocation="CenterScreen">
+        Title="ZMotionWindow" Height="800" Width="1100" Cursor="" WindowStartupLocation="CenterScreen">
     <Grid>
         <i:Interaction.Behaviors>
             <behaviors:ValidationExceptionBehavior/>

@@ -4104,12 +4104,6 @@ namespace cszmcaux
 
 
 
-        [DllImport("zauxdll.dll", EntryPoint = "ZAux_CycleUpEnable", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        public static extern Int32 ZAux_CycleUpEnable(IntPtr handle, UInt32 cycleindex, float fintervalms, string psetesname);
-
-        [DllImport("zauxdll.dll", EntryPoint = "ZAux_CycleUpReadBuff", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        public static extern Int32 ZAux_CycleUpReadBuff(IntPtr handle, UInt32 cycleindex, string psetname, UInt32 isetindex, ref double pvalue);
-
 
 
 
