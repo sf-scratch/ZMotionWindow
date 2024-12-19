@@ -96,7 +96,7 @@ namespace ZMotionWindow.ZMotion
                     {
                         if (!dictionary[task].Task.IsCompleted)
                         {
-                            dictionary[task].SetResult(new InStatusResult(TckIntention.Stop));
+                            dictionary[task].SetResult(null);
                         }
                     }
                 }
@@ -104,23 +104,13 @@ namespace ZMotionWindow.ZMotion
             return await result;
         }
 
-        public async Task StopAllWaiting()
+        public void StopAllWaiting()
         {
-            await Task.Run(async () =>
+            if (WaitingTasks.Count <= 0) return;
+            foreach (var item in WaitingTasks)
             {
-                lock (WaitingTasks)
-                {
-                    foreach (var item in WaitingTasks)
-                    {
-                        if (item.Task.IsCompleted) continue;
-                        lock (item)
-                        {
-                            if (item.Task.IsCompleted) continue;
-                            item.SetResult(new InStatusResult(TckIntention.StopThrowErr));
-                        }
-                    }
-                }
-            });
+                item.TrySetCanceled();
+            }
         }
 
         private async Task<InStatusResult> WaitInUpdateAsync(TaskCompletionSource<InStatusResult> tcs, int inNum, int waitStatus)
@@ -155,22 +145,22 @@ namespace ZMotionWindow.ZMotion
 
             };
             InUpdatedEvent += In_Updated;
+            InStatusResult res;
             try
             {
                 WaitingTasks.Add(tcs);
-                InStatusResult result = await tcs.Task;
-                if (result.Intention == TckIntention.StopThrowErr)
-                {
-                    throw new ZMotionStopException();
-                }
-                _inStatus = result.Status;
+                res = await tcs.Task;
+            }
+            catch(TaskCanceledException ex)
+            {
+                throw new ZMotionStopException();
             }
             finally
             {
                 InUpdatedEvent -= In_Updated;
                 WaitingTasks.Remove(tcs);
             }
-            return new InStatusResult(inNum, _inStatus);
+            return res;
         }
 
         //public async Task WaitExpectedResultAsync<T>(Func<T> func, T expectedResult)

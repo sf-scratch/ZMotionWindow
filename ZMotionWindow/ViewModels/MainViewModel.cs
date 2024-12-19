@@ -402,8 +402,21 @@ namespace ZMotionWindow.ViewModels
                 ShowMsg(ex.Message);
             }
             SetMotionParam();
+            //int ret = ZAux_Direct_SetCreep(_handle, _axis, 50);
+            //ret |= ZAux_Direct_SetDatumIn(_handle, _axis, 0); //设置原点点开关
+            //ret |= ZAux_Direct_SetHomeWait(_handle, _axis, 1000); //设置回零等待时间
+            //ret |= ZAux_Direct_Single_Datum(_handle, _axis, 3); //回零，模式 3
+            //await Task.Run(async () =>
+            //{
+            //    uint homestatus = 0;
+            //    while (true)//等待轴 0 回零运动完成
+            //    {
+            //        await Task.Delay(100);
+            //        ZAux_Direct_GetHomeStatus(_handle, _axis, ref homestatus);//获取回零运动完成状态
+            //        if (homestatus == 1) break;
+            //    }
+            //});
             WindowIsEnable = true;
-
         }
 
         private void ResumeMoving()

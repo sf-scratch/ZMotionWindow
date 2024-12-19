@@ -16,8 +16,8 @@ namespace ZMotionWindow.ZMotion
 {
     public class CustomZMotion
     {
-        private static readonly int InTriggerStatus = 1;//输入触发电平
-        private static readonly int InCloseStatus = 0;//输入关闭电平
+        private static readonly int InTriggerStatus = 0;//输入触发电平
+        private static readonly int InCloseStatus = 1;//输入关闭电平
         private static readonly int LongInch = 100000;
         private static readonly HashSet<Task> RuningTasks = new HashSet<Task>();
         private static CancellationTokenSource CancelAllTasks = new CancellationTokenSource();
@@ -52,32 +52,39 @@ namespace ZMotionWindow.ZMotion
             int piValue = 0;
             Task task = Task.Run(async () =>
             {
+                CancellationTokenSource source = CancelAllTasks;
                 while (true)
                 {
-                    if (CancelAllTasks.IsCancellationRequested)
+                    if (source.IsCancellationRequested)
                     {
                         throw new ZMotionStopException();
                     }
-                    await Task.Delay(500);
+                    await Task.Delay(500, source.Token);
                     ZAux_Direct_GetMark(handle, axis, ref piValue);
                     if (piValue == -1)//触发锁存
                     {
                         ZAux_Direct_Single_Cancel(handle, axis, 3);
-                        await Task.Delay(2000);//等编码器返回值稳定
+                        await Task.Delay(2000, source.Token);//等编码器返回值稳定
                         float curMpos = 0;
                         ZAux_Direct_GetMpos(handle, axis, ref curMpos);
                         float regPos = 0;
                         ZAux_Direct_GetRegPos(handle, axis, ref regPos);
                         SetMotionParam(handle, axis, 100, 150, 150, 400, 100, 0);
                         ZAux_Direct_Single_Move(handle, axis, regPos - curMpos);
-                        await Task.Delay(2000);//等编码器返回值稳定
+                        await Task.Delay(2000, source.Token);//等编码器返回值稳定
                         break;
                     }
                 }
             });
-            RuningTasks.Add(task);
-            await task;
-            RuningTasks.Remove(task);
+            try
+            {
+                RuningTasks.Add(task);
+                await task;
+            }
+            finally
+            {
+                RuningTasks.Remove(task);
+            }
             #endregion
             #region 普通回零
             //SetMotionParam(handle, axis, 0, 20, 200, 400, 100, 0);//设置回零运动参数
@@ -97,7 +104,7 @@ namespace ZMotionWindow.ZMotion
         public static async Task<int> StopAsync(IntPtr handle, int axis, ZmotionStatus zmotionStatus)
         {
             int res = ZAux_Direct_Single_Cancel(handle, axis, 3);
-            await zmotionStatus.StopAllWaiting();
+            zmotionStatus.StopAllWaiting();
             CancelAllTasks.Cancel();
             await WaitAllTasksStoped(RuningTasks, 2000);
             return res;
@@ -105,10 +112,22 @@ namespace ZMotionWindow.ZMotion
 
         private static async Task WaitAllTasksStoped(HashSet<Task> tasks, int timeOut)
         {
+            if (tasks.Count == 0)
+            {
+                CancelAllTasks = new CancellationTokenSource();
+                return;
+            }
             CancellationTokenSource cts = new CancellationTokenSource();
             Task timeoutTask = Task.Delay(timeOut, cts.Token);
-            var completedTask = await Task.WhenAny(Task.WhenAll(tasks), timeoutTask);
-            CancelAllTasks = new CancellationTokenSource();
+            Task completedTask;
+            try
+            {
+                completedTask = await Task.WhenAny(Task.WhenAll(tasks), timeoutTask);
+            }
+            finally
+            {
+                CancelAllTasks = new CancellationTokenSource();
+            }
             if (completedTask == timeoutTask)
             {
                 throw new ZMotionStopTimeOutException();

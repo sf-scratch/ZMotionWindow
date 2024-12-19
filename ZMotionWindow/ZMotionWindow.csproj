@@ -110,6 +110,7 @@
     <Compile Include="Models\OutStatusPanel.cs" />
     <Compile Include="Rules\IsDigitalValidationRule.cs" />
     <Compile Include="Rules\NotEmptyValidationRule.cs" />
+    <Compile Include="Utils\CancelableThreadTask.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\Main.xaml.cs">
       <DependentUpon>Main.xaml</DependentUpon>

@@ -28,27 +28,10 @@ namespace ZMotionWindow.ZMotion
             set { _status = value; }
         }
 
-        public TckIntention Intention { get; set; }
-
-        public InStatusResult(int inNum, long status, TckIntention intention = TckIntention.None) 
+        public InStatusResult(int inNum, long status) 
         {
             _inNum = inNum;
             _status = status;
-            Intention = intention;
         }
-
-        public InStatusResult(TckIntention intention)
-        {
-            _inNum = 0;
-            _status = 0;
-            Intention = intention;
-        }
-    }
-
-    public enum TckIntention
-    {
-        None,
-        Stop,
-        StopThrowErr
     }
 }
